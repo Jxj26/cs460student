@@ -24,12 +24,28 @@
     <script type="module">
 
       import * as THREE from 'three';
-      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';      
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';  
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';    
+      import {Pane} from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js';
+      import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js';
+      import { VertexNormalsHelper } from 'three/addons/helpers/VertexNormalsHelper.js';
 
-      let renderer, controls, scene, camera, LASTOBJECT, scalingactive;
-      let ALL_TORUSES = [];
-      let FLICKERING = false;
-      let WIREFRAME = false;
+      let renderer, controls, scene, camera, pane, effect;
+
+      // Helper for Tweakpane
+      window['SCENE'] = {
+        'anaglyph': false,
+        'poly' : null,
+        'blender_poly' : null,
+        'rotate_poly': false,
+        'rotate_blender_poly': false,
+        'do_rotate_poly': function() {
+        window['SCENE']['rotate_poly'] = !window['SCENE']['rotate_poly'];
+        },
+        'do_rotate_blender_poly': function() {
+        window['SCENE']['rotate_blender_poly'] = !window['SCENE']['rotate_blender_poly'];
+        }
+      };
 
 
       window.onload = function() {
@@ -37,136 +53,145 @@
         // Three.js code goes here
         scene = new THREE.Scene();
 
+        // Add Ambient Light
+        const light = new THREE.AmbientLight( 0xffffff ); // soft white light
+        scene.add( light );
+
+        // White directional light at half intensity shining from the top.
+        const directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
+        scene.add( directionalLight );
+
+        // Load Polycam glb file
+        const loader = new GLTFLoader();
+        loader.load( 'rtx-4060-model.glb', function ( gltf ) {
+          scene.add( gltf.scene );
+          var poly = gltf.scenes[0].children[0];
+        
+          poly.scale.x = 10;
+          poly.scale.y = 10;
+          poly.scale.z = 10;
+
+          poly.quaternion.w = 1;
+          poly.quaternion.x = 0;
+          poly.quaternion.y = 0;
+          poly.quaternion.z = 0;
+
+          poly.translateZ(2);
+          poly.translateY(-1);
+
+          window.SCENE.poly = poly;
+
+          // Added Tweakpane folder, wireframe, and rotation UI
+          var polyui = pane.addFolder({title: 'PolyCam Mesh'});
+          polyui.addBinding(window.SCENE.poly.material, 'wireframe');
+          polyui.addButton({title:'rotate!'}).on('click', () => {
+            window.SCENE.do_rotate_poly();
+            });
+        } );
+
+        // Load Blender glb file
+        loader.load( 'rtx-4060-model2.glb', function ( gltf ) {
+          scene.add( gltf.scene );
+          var poly = gltf.scenes[0].children[0];
+          poly.scale.x = 10;
+          poly.scale.y = 10;
+          poly.scale.z = 10;
+
+          poly.quaternion.w = 1;
+          poly.quaternion.x = 0;
+          poly.quaternion.y = 0;
+          poly.quaternion.z = 0;
+          poly.translateX(10);
+
+          window.SCENE.blender_poly = poly;
+
+          var helper = new VertexNormalsHelper( poly, 0.1, 'blue' );
+          helper.visible = false;
+          scene.add(helper);
+
+          // Added Tweakpane folder, wireframe, and rotation UI
+          var polyui = pane.addFolder({title: 'Blender Mesh'});
+          polyui.addBinding(window.SCENE.blender_poly.material, 'wireframe');
+          polyui.addButton({title:'rotate!'}).on('click', () => {
+            window.SCENE.do_rotate_blender_poly();
+          });
+          polyui.addBinding(helper, 'visible', {label:'Show normals!'});
+        } );
+
+        // Tweakpane UI
+        pane = new Pane();
+        var sceneui = pane.addFolder({title: 'Scene'});
+
+        sceneui.addBinding(light.position, 'x', {min:-100, max:100, label:'Light X'});
+        sceneui.addBinding(light.position, 'y', {min:-100, max:100, label:'Light Y'});
+        sceneui.addBinding(light.position, 'z', {min:-100, max:100, label:'Light Z'});
+        sceneui.addBinding(window.SCENE, 'anaglyph');
+        
+
         // setup the camera
         var fov = 75;
         var ratio = window.innerWidth / window.innerHeight;
         var zNear = 1;
         var zFar = 10000;
         camera = new THREE.PerspectiveCamera( fov, ratio, zNear, zFar );
-        camera.position.set(0, 0, 100);
+        camera.position.set(0, 0, 20);
 
         // create renderer and setup the canvas
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize( window.innerWidth, window.innerHeight );
         document.body.appendChild( renderer.domElement );
 
+        // Anaglyph Effect (disabled by default)
+        effect = new AnaglyphEffect(renderer);
+        effect.setSize(window.innerWidth, window.innerHeight);
 
+        controls = new OrbitControls(camera, renderer.domElement);
 
-        renderer.domElement.onmousedown = function( e ){
-
-            if (e.shiftKey) {
-              console.log('shift clicked');
-              controls.enabled = false;
-
-              console.log('Yay! We clicked!');
-
-              var pixel_coords = new THREE.Vector2( e.clientX, e.clientY );
-
-              console.log('Pixel coords', pixel_coords);
-
-              var vp_coords = new THREE.Vector2( 
-                        ( pixel_coords.x / window.innerWidth ) * 2 - 1,  //X
-                        -( pixel_coords.y / window.innerHeight ) * 2 + 1) // Y
-
-              console.log('Viewport coords', vp_coords);
-
-              var vp_coords_near = new THREE.Vector3( vp_coords.x, vp_coords.y, 0);
-
-
-              var raycaster = new THREE.Raycaster();
-              raycaster.setFromCamera(vp_coords_near, camera);
-              var intersects = raycaster.intersectObject(invisible_plane);
-
-              console.log('Ray to Invisible Plane', intersects[0].point);
-
-              // Check for intersections and place a torus in that location
-              if (intersects.length > 0) {
-                var location = intersects[0].point;
-                var geometry = new THREE.TorusKnotGeometry( 25, 8, 100, 16 ); 
-                var material = new THREE.MeshStandardMaterial( { color: 0xFF69B4 } ); 
-                var torusKnot = new THREE.Mesh( geometry, material ); 
-                torusKnot.position.set(location.x, location.y, location.z);
-                scene.add( torusKnot );
-                LASTOBJECT = torusKnot;
-                scalingactive = true;
-                ALL_TORUSES.push(LASTOBJECT);
-
-              }
-              renderer.domElement.onmousemove = function( e ) {
-                if (LASTOBJECT && scalingactive) {
-                  var DELTA = -e.movementY * 0.01;
-                  LASTOBJECT.scale.set(LASTOBJECT.scale.x + DELTA, LASTOBJECT.scale.y + DELTA, LASTOBJECT.scale.z + DELTA);
-                  if (LASTOBJECT.scale.y < 0) {
-                    LASTOBJECT.material.color.set('#7CFC00');
-                  } else
-                   LASTOBJECT.material.color.set('#FF69B4');
-                }
-              }
-          }
-        };
-
-        renderer.domElement.onmouseup = function ( e ){
-          controls.enabled = true;
-          LASTOBJECT = null;
-          scalingactive = false;
-        }
-
-        window.onkeypress = function ( e ) {
-          if (e.key === 'f' || e.key === 'F') {
-            FLICKERING = !FLICKERING;
-            console.log("Flickering;", FLICKERING);
-          }
-
-          if (e.key === 'w' || e.key === 'W') {
-            WIREFRAME = !WIREFRAME;
-            ALL_TORUSES.forEach(torus => {
-              torus.material.wireframe = WIREFRAME;
-              torus.material.needsUpdate = true;
-            })
-          }
-        }
-
-
-        // setup lights
-        var ambientLight = new THREE.AmbientLight();
-        scene.add( ambientLight );
-
-        var light = new THREE.DirectionalLight( 0xffffff, 5.0 );
-        light.position.set( 10, 100, 10 );
-        scene.add( light );
-
-
-        // The invisible plane
-        var geometry = new THREE.PlaneGeometry( 10000, 10000 );
-        var material = new THREE.MeshBasicMaterial( { visible: false });
-
-        var invisible_plane = new THREE.Mesh( geometry, material );
-
-        scene.add( invisible_plane );
-
-        // interaction
-        controls = new OrbitControls( camera, renderer.domElement );
-
-        // call animation/rendering loop
         animate();
-        
-      };
+      }
+      
+        // Identity quaternion (0°)
+        const q0 = new THREE.Quaternion().set(0, 0, 0, 1);
 
+        // 180° around X axis
+        const q180 = new THREE.Quaternion().setFromAxisAngle(
+          new THREE.Vector3(1, 0, 0),
+          Math.PI
+        );
       function animate() {
 
         requestAnimationFrame( animate );
+        
+        // check for Anaglyph flag
+        if (window.SCENE.anaglyph) {
+          effect.render(scene, camera);
+        } else {
+          renderer.render(scene, camera);
+        }
+        
+        // Polycam rotation
+        if (window.SCENE.poly) {
+          if (window.SCENE.rotate_poly) {
 
-        if(FLICKERING) {
-          ALL_TORUSES.forEach(torus => {
-            torus.material.opacity = Math.random();
-            torus.material.transparent = true;
-            torus.material.needsUpdate = true;
-          })
+          // 180 degree quaternion
+          window.SCENE.poly.quaternion.slerp( q180, 0.01 );
+          } else {
+          window.SCENE.poly.quaternion.slerp( q0, 0.01 );
+          }
         }
 
-        // and here..
+        // Blender rotation
+        if (window.SCENE.blender_poly) {
+          if (window.SCENE.rotate_blender_poly) {
+
+          // 180 degree quaternion
+          window.SCENE.blender_poly.quaternion.slerp( q180, 0.01 );
+          } else {
+
+          window.SCENE.blender_poly.quaternion.slerp( q0, 0.01 );
+          }
+        }
         controls.update();
-        renderer.render( scene, camera );
         
       };
     </script>
