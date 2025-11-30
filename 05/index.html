@@ -11,6 +11,7 @@
     </style>
     
     <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
 
     <script type="importmap">
     {
@@ -30,23 +31,36 @@
       import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js';
       import { VertexNormalsHelper } from 'three/addons/helpers/VertexNormalsHelper.js';
 
-      let renderer, controls, scene, camera, pane, effect;
+      let renderer, controls, scene, camera, pane, effect, stats;
 
       // Helper for Tweakpane
       window['SCENE'] = {
         'anaglyph': false,
         'poly' : null,
-        'blender_poly' : null,
+        'blender' : null,
         'rotate_poly': false,
         'rotate_blender_poly': false,
         'do_rotate_poly': function() {
-        window['SCENE']['rotate_poly'] = !window['SCENE']['rotate_poly'];
+          window['SCENE']['rotate_poly'] = !window['SCENE']['rotate_poly'];
         },
         'do_rotate_blender_poly': function() {
-        window['SCENE']['rotate_blender_poly'] = !window['SCENE']['rotate_blender_poly'];
-        }
-      };
+          window['SCENE']['rotate_blender_poly'] = !window['SCENE']['rotate_blender_poly'];
+        },
 
+        'blender_old_material': null,
+        'change_material': function() {
+          if (!window['SCENE']['blender_old_material']) {
+            window['SCENE']['blender_old_material'] = window['SCENE']['blender'].material.clone();
+            window['SCENE']['blender'].material = new THREE.MeshNormalMaterial();
+          } else {
+            window['SCENE']['blender'].material = window['SCENE']['blender_old_material'].clone();
+            window['SCENE']['blender_old_material'] = null;
+          }
+        },
+
+        'blender_helper': null
+
+      };
 
       window.onload = function() {
 
@@ -64,8 +78,11 @@
         // Load Polycam glb file
         const loader = new GLTFLoader();
         loader.load( 'rtx-4060-model.glb', function ( gltf ) {
+
+          
           scene.add( gltf.scene );
           var poly = gltf.scenes[0].children[0];
+          
         
           poly.scale.x = 10;
           poly.scale.y = 10;
@@ -92,30 +109,34 @@
         // Load Blender glb file
         loader.load( 'rtx-4060-model2.glb', function ( gltf ) {
           scene.add( gltf.scene );
-          var poly = gltf.scenes[0].children[0];
-          poly.scale.x = 10;
-          poly.scale.y = 10;
-          poly.scale.z = 10;
+          var blender = gltf.scenes[0].children[0];
+          blender.scale.x = 10;
+          blender.scale.y = 10;
+          blender.scale.z = 10;
 
-          poly.quaternion.w = 1;
-          poly.quaternion.x = 0;
-          poly.quaternion.y = 0;
-          poly.quaternion.z = 0;
-          poly.translateX(10);
+          blender.quaternion.w = 1;
+          blender.quaternion.x = 0;
+          blender.quaternion.y = 0;
+          blender.quaternion.z = 0;
+          blender.translateX(10);
 
-          window.SCENE.blender_poly = poly;
+          window.SCENE.blender = blender;
 
-          var helper = new VertexNormalsHelper( poly, 0.1, 'blue' );
+          var helper = new VertexNormalsHelper( blender, 0.1, 'blue' );
           helper.visible = false;
           scene.add(helper);
+          window.SCENE.blender_helper = helper;
 
           // Added Tweakpane folder, wireframe, and rotation UI
           var polyui = pane.addFolder({title: 'Blender Mesh'});
-          polyui.addBinding(window.SCENE.blender_poly.material, 'wireframe');
+          polyui.addBinding(window.SCENE.blender.material, 'wireframe');
+          polyui.addBinding(helper, 'visible', {label:'Show normals!'});
+          polyui.addButton({title:'Change Material'}).on('click', () => {
+            window.SCENE.change_material();
+          });
           polyui.addButton({title:'rotate!'}).on('click', () => {
             window.SCENE.do_rotate_blender_poly();
           });
-          polyui.addBinding(helper, 'visible', {label:'Show normals!'});
         } );
 
         // Tweakpane UI
@@ -147,6 +168,8 @@
 
         controls = new OrbitControls(camera, renderer.domElement);
 
+        stats = new Stats();
+        document.body.appendChild(stats.domElement);
         animate();
       }
       
@@ -181,16 +204,19 @@
         }
 
         // Blender rotation
-        if (window.SCENE.blender_poly) {
+        if (window.SCENE.blender) {
           if (window.SCENE.rotate_blender_poly) {
 
           // 180 degree quaternion
-          window.SCENE.blender_poly.quaternion.slerp( q180, 0.01 );
+          window.SCENE.blender.quaternion.slerp( q180, 0.01 );
           } else {
 
-          window.SCENE.blender_poly.quaternion.slerp( q0, 0.01 );
+          window.SCENE.blender.quaternion.slerp( q0, 0.01 );
           }
+
+          window.SCENE.blender_helper.update();
         }
+        stats.update();
         controls.update();
         
       };
