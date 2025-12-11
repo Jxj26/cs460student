@@ -48,6 +48,21 @@
             // Attach camera control to the canvas for user interaction
             scene.activeCamera.attachControl(canvas, true);
             
+            // Grab the loaded mesh and apply a PBR material to it
+            const loadedMesh = scene.meshes[1];
+
+            // Create a PBR material
+            const pbrMaterial = new BABYLON.PBRMaterial("pbrMaterial", scene);
+            
+            // Set material parameters
+            pbrMaterial.albedoColor = new BABYLON.Color3(0.2, 0.2, 0.8);   
+            pbrMaterial.metallic = .5;                                      
+            pbrMaterial.roughness = .1;                                     
+            pbrMaterial.reflectivityColor = new BABYLON.Color3(0.9, 0.9, 0.9); 
+
+            // Apply the PBR material to the loaded mesh
+            loadedMesh.material = pbrMaterial;
+            
             // Run the render loop to render the scene
             engine.runRenderLoop(() => scene.render());
             
