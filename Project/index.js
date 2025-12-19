@@ -233,6 +233,7 @@ let targetState = "circle"; // "circle" or "expanded"
 
 const mainLights = [ambient, moonLight, underLight];
 let lightsOn = true;
+let activeCont = false;
 // --- key controls ---
 window.addEventListener("keydown", (e) => {
     if (e.key === "q") targetState = "expanded";
@@ -244,7 +245,10 @@ window.addEventListener("keydown", (e) => {
             light.visible = lightsOn;
         });
     }
-    if (e.key === "r") controls.activeLook = true;
+    if (e.key === "c"){
+      activeCont = !activeCont;
+      controls.activeLook = activeCont;
+    } 
 });
 
 
