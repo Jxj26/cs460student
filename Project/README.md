@@ -40,3 +40,5 @@ Want to thank Professor Daniel Haehn and all the TAs for the amazing assistance 
 
 ## Future Plans
 This project is still on-going and will be updated to make it more interactive and immersive. Also there is some optimization to be done to make this run smoother.
+<img width="2556" height="1233" alt="Screenshot 2025-12-19 182423" src="https://github.com/user-attachments/assets/6cc2a6f5-521e-4879-b168-b5ff2dd33c2b" />
+<img width="2550" height="1226" alt="Screenshot 2025-12-19 182625" src="https://github.com/user-attachments/assets/98ea64ce-6ade-40f0-bd29-4ff6cbc720af" />
