@@ -149,7 +149,7 @@ for (let i = 0; i < NUM_SHAPES; i++) {
 
 // Light Rectangles ---------------------------------------------------------------
 RectAreaLightUniformsLib.init();
-// Creates Rectangles lights side by side, x is the number of lights and y is y position
+// Creates Rectangles lights side by side
 const CreateLightRectArray = (count, radius, y) => {
   
   for (let i = 0; i < count; i++) {
@@ -170,7 +170,6 @@ CreateLightRectArray(8, 50, 5);
 CreateLightRectArray(8, 50, -5);
 // ---------------------------------------------------------------------------------
 
-
 // Sky Partticles ----------------------------------------------
 const geometry = new THREE.BufferGeometry();
 const vertices = [];
@@ -184,9 +183,6 @@ const particles = new THREE.Points( geometry, new THREE.PointsMaterial( { color:
 scene.add( particles );
 
 // -------------------------------------------------------------
-
-
-
 
 // Particle Explosion -------------------------------------------------
 const COUNT = 500;
@@ -353,8 +349,6 @@ function animate() {
         shape.rotation.x += shape.userData.rotationSpeed.x;
         shape.rotation.y += shape.userData.rotationSpeed.y;
         shape.rotation.z += shape.userData.rotationSpeed.z;
-        // shape.position.y += Math.sin(clock.getElapsedTime() + (Math.random() * Math.PI * 2)) * 0.5;
-
     });
 
   // controls.update();
