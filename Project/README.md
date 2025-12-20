@@ -1,7 +1,9 @@
 # Dream World
 Welcome to the Dream World!
-![DreamWorld - frame at 0m20s](https://github.com/user-attachments/assets/628a0ec4-3e11-47c5-8d76-91930b5c7f43)
-![DreamWorld - frame at 1m58s](https://github.com/user-attachments/assets/291137a1-0b63-41b4-9c57-13673c2d6ef3)
+
+![DreamWorld - frame at 1m58s](https://github.com/user-attachments/assets/d8335361-e5ed-4e31-bb79-aa6ed5807957)
+
+![DreamWorld - frame at 0m20s](https://github.com/user-attachments/assets/b8598d78-6be8-4d89-99d8-b3a0ccd52db3)
 
 ## Description
 Dream World is an interactive 3D environment that will leave you puzzled and in a dream like state. Enter a world filled with wonder. Naviagate the fog filled world and experience the mirrored day and night forest of Dream World. 
